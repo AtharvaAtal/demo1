@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gallery — MaheshwariSales</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{gold:'#c9a84c','gold-light':'#e8c97a','gold-dim':'#7a6030',silver:'#b8bec7','silver-dim':'#6b7280',dark:'#0a0a0a'}}}}</script>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    .page-header {
+      padding: 140px 80px 60px;
+      background: linear-gradient(180deg, rgba(10,10,10,0.2) 0%, var(--bg) 100%),
+                  url('https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=1600&auto=format') center/cover;
+      border-bottom: 1px solid rgba(201,168,76,0.1);
+      position: relative;
+    }
+    .page-header::before { content:''; position:absolute; inset:0; background:rgba(10,10,10,0.7); }
+    .page-header-content { position:relative; z-index:1; }
+    .breadcrumb { display:flex; align-items:center; gap:8px; font-size:0.68rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--silver-dim); margin-bottom:16px; }
+    .breadcrumb a { color:var(--gold); text-decoration:none; }
+
+    /* Gallery Filter Tabs */
+    .gallery-controls {
+      padding: 40px 80px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .gallery-tabs { display:flex; gap:4px; flex-wrap:wrap; }
+    .gallery-tab {
+      padding: 8px 20px;
+      background: none;
+      border: 1px solid rgba(255,255,255,0.07);
+      color: var(--silver-dim);
+      font-family: 'Jost', sans-serif;
+      font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase;
+      cursor: none;
+      transition: all 0.3s ease;
+    }
+    .gallery-tab:hover { color:var(--silver); border-color:rgba(255,255,255,0.15); }
+    .gallery-tab.active {
+      background: rgba(201,168,76,0.08);
+      border-color: rgba(201,168,76,0.3);
+      color: var(--gold);
+    }
+    .gallery-count { font-size:0.7rem; color:var(--silver-dim); letter-spacing:0.1em; }
+    .gallery-count strong { color:var(--gold); font-weight:400; }
+
+    /* Masonry Grid */
+    .masonry-section { padding: 40px 80px 100px; }
+    .masonry-grid {
+      columns: 4;
+      column-gap: 16px;
+    }
+    .masonry-item {
+      break-inside: avoid;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      cursor: none;
+      display: block;
+    }
+    .masonry-item img {
+      width: 100%; display: block;
+      transition: transform 0.6s cubic-bezier(0.77,0,0.175,1);
+    }
+    .masonry-item:hover img { transform: scale(1.06); }
+
+    .masonry-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(10,10,10,0.85) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      display: flex;
+      align-items: flex-end;
+      padding: 16px;
+    }
+    .masonry-item:hover .masonry-overlay { opacity: 1; }
+    .masonry-caption {
+      color: var(--white);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      line-height: 1.4;
+    }
+    .masonry-caption strong { display:block; color:var(--gold); font-weight:400; font-family:'Cormorant Garamond',serif; font-size:0.95rem; }
+
+    .masonry-zoom-icon {
+      position: absolute; top: 12px; right: 12px;
+      width: 32px; height: 32px;
+      background: rgba(10,10,10,0.7);
+      border: 1px solid rgba(201,168,76,0.3);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(0.8);
+      transition: all 0.3s ease;
+      color: var(--gold);
+    }
+    .masonry-item:hover .masonry-zoom-icon { opacity:1; transform:scale(1); }
+
+    /* Loading skeleton for masonry */
+    .masonry-skeleton {
+      break-inside: avoid;
+      margin-bottom: 16px;
+      background: var(--bg3);
+    }
+
+    /* ── Lightbox ── */
+    .lightbox {
+      position: fixed; inset: 0; z-index: 5000;
+      background: rgba(0,0,0,0);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.4s ease, background 0.4s ease;
+    }
+    .lightbox.open {
+      background: rgba(0,0,0,0.93);
+      opacity: 1; pointer-events: all;
+    }
+    .lightbox-backdrop {
+      position: absolute; inset: 0;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .lightbox-content {
+      position: relative; z-index: 1;
+      max-width: 90vw; max-height: 90vh;
+      display: flex; flex-direction: column; align-items: center;
+      transform: scale(0.92);
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .lightbox.open .lightbox-content { transform: scale(1); }
+    .lightbox-img {
+      max-width: 90vw; max-height: 78vh;
+      object-fit: contain;
+      box-shadow: 0 40px 120px rgba(0,0,0,0.8);
+      border: 1px solid rgba(201,168,76,0.15);
+    }
+    .lightbox-info {
+      margin-top: 20px; text-align: center;
+    }
+    .lightbox-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem; font-weight: 300; color: var(--white);
+      margin-bottom: 4px;
+    }
+    .lightbox-sub { font-size: 0.7rem; color: var(--silver-dim); letter-spacing: 0.12em; }
+
+    .lightbox-close {
+      position: fixed; top: 24px; right: 32px;
+      background: rgba(14,14,14,0.8);
+      border: 1px solid rgba(201,168,76,0.2);
+      color: var(--silver);
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: none; font-size: 1.2rem; z-index: 2;
+      transition: all 0.3s ease;
+    }
+    .lightbox-close:hover { color:var(--gold); border-color:var(--gold); transform:rotate(90deg); }
+
+    .lightbox-prev, .lightbox-next {
+      position: fixed; top: 50%; transform: translateY(-50%);
+      background: rgba(14,14,14,0.7);
+      border: 1px solid rgba(201,168,76,0.2);
+      color: var(--silver); width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: none; font-size: 1.2rem; z-index: 2;
+      transition: all 0.3s ease;
+    }
+    .lightbox-prev { left: 24px; }
+    .lightbox-next { right: 24px; }
+    .lightbox-prev:hover, .lightbox-next:hover { color:var(--gold); border-color:var(--gold); background:rgba(201,168,76,0.08); }
+
+    .lightbox-counter {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      font-size: 0.68rem; color: var(--silver-dim); letter-spacing: 0.2em;
+      z-index: 2;
+    }
+
+    @media (max-width:1200px) { .masonry-grid { columns:3; } .gallery-controls { padding:32px 32px 0; } .masonry-section { padding:32px 32px 80px; } }
+    @media (max-width:768px)  { .masonry-grid { columns:2; } .gallery-controls,.masonry-section { padding-left:20px; padding-right:20px; } .page-header { padding:120px 24px 48px; } }
+    @media (max-width:480px)  { .masonry-grid { columns:1; } }
+  </style>
+</head>
+<body>
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <a href="index.html" class="logo">
+      <span class="logo-maheshwari">Maheshwari</span><span class="logo-dot"></span><span class="logo-sales">Sales</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="products.html">Collection</a></li>
+      <li><a href="gallery.html" style="color:var(--gold)">Gallery</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="nav-icon-btn" aria-label="Cart" style="position:relative">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        <span class="cart-badge" id="cartBadge">0</span>
+      </button>
+      <button class="hamburger" id="hamburgerBtn"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-logo">Maheshwari Sales</span>
+      <button class="sidebar-close" id="sidebarClose">✕</button>
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="products.html">Collection</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- PAGE HEADER -->
+  <header class="page-header">
+    <div class="page-header-content">
+      <div class="breadcrumb"><a href="index.html">Home</a><span>›</span><span>Gallery</span></div>
+      <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.4rem,5vw,4rem);font-weight:300;color:var(--white)">
+        Our <em style="font-style:italic;color:var(--gold-light)">Gallery</em>
+      </h1>
+    </div>
+  </header>
+
+  <!-- FILTER TABS -->
+  <div class="gallery-controls reveal">
+    <div class="gallery-tabs">
+      <button class="gallery-tab active" data-filter="all">All</button>
+      <button class="gallery-tab" data-filter="Taps">Taps</button>
+      <button class="gallery-tab" data-filter="Washbasins">Washbasins</button>
+      <button class="gallery-tab" data-filter="Pipes">Pipes</button>
+      <button class="gallery-tab" data-filter="Switches">Switches</button>
+      <button class="gallery-tab" data-filter="Lifestyle">Lifestyle</button>
+    </div>
+    <div class="gallery-count">Showing <strong id="galleryCount">0</strong> images</div>
+  </div>
+
+  <!-- MASONRY -->
+  <section class="masonry-section">
+    <div class="masonry-grid" id="masonryGrid">
+      <!-- Skeletons -->
+      <div class="masonry-skeleton skeleton" style="height:280px"></div>
+      <div class="masonry-skeleton skeleton" style="height:200px"></div>
+      <div class="masonry-skeleton skeleton" style="height:340px"></div>
+      <div class="masonry-skeleton skeleton" style="height:220px"></div>
+      <div class="masonry-skeleton skeleton" style="height:260px"></div>
+      <div class="masonry-skeleton skeleton" style="height:300px"></div>
+      <div class="masonry-skeleton skeleton" style="height:180px"></div>
+      <div class="masonry-skeleton skeleton" style="height:320px"></div>
+    </div>
+  </section>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image lightbox">
+    <div class="lightbox-backdrop" id="lightboxBackdrop"></div>
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close">✕</button>
+    <button class="lightbox-prev" id="lightboxPrev" aria-label="Previous">‹</button>
+    <button class="lightbox-next" id="lightboxNext" aria-label="Next">›</button>
+    <div class="lightbox-content">
+      <img class="lightbox-img" id="lightboxImg" src="" alt=""/>
+      <div class="lightbox-info">
+        <div class="lightbox-title" id="lightboxTitle"></div>
+        <div class="lightbox-sub" id="lightboxSub"></div>
+      </div>
+    </div>
+    <div class="lightbox-counter" id="lightboxCounter"></div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://pwlappfcyqechcoiqcjk.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB3bGFwcGZjeXFlY2hjb2lxY2prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NzA0NjUsImV4cCI6MjA4ODU0NjQ2NX0.364XmLPVCFGDVlrdNrW_JAOUQXmAKDYyp_mfKDmMUGI'
+    );
+
+    // ── Gallery Images ─────────────────────────────────────────
+    // Products from Supabase + lifestyle images
+    const LIFESTYLE_IMAGES = [
+      { url:'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800&auto=format', title:'Master Bath Suite', cat:'Lifestyle' },
+      { url:'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800&auto=format', title:'Minimalist Vanity', cat:'Lifestyle' },
+      { url:'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&auto=format', title:'Luxury Interior', cat:'Lifestyle' },
+      { url:'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&auto=format', title:'Tap Detail', cat:'Lifestyle' },
+      { url:'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800&auto=format', title:'Modern Bathroom', cat:'Lifestyle' },
+      { url:'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&auto=format', title:'Kitchen Design', cat:'Lifestyle' },
+      { url:'https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=800&auto=format', title:'Sleek Kitchen', cat:'Lifestyle' },
+      { url:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format', title:'Piping System', cat:'Lifestyle' },
+      { url:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800&auto=format', title:'Switch Detail', cat:'Lifestyle' },
+    ];
+
+    let allImages = [];
+    let filteredImages = [];
+    let currentIndex = 0;
+    let activeFilter = 'all';
+
+    async function loadGallery() {
+      const { data } = await supabase.from('products').select('name,category,image_url').order('id');
+      const productImgs = (data || []).map(p => ({ url: p.image_url, title: p.name, cat: p.category }));
+      allImages = [...productImgs, ...LIFESTYLE_IMAGES];
+      filterAndRender('all');
+    }
+
+    function filterAndRender(filter) {
+      activeFilter = filter;
+      filteredImages = filter === 'all' ? allImages : allImages.filter(i => i.cat === filter);
+      document.getElementById('galleryCount').textContent = filteredImages.length;
+      renderMasonry();
+    }
+
+    function renderMasonry() {
+      const grid = document.getElementById('masonryGrid');
+      grid.innerHTML = filteredImages.map((img, i) => `
+        <div class="masonry-item reveal" style="transition-delay:${(i%8)*0.05}s" data-index="${i}">
+          <img src="${img.url}" alt="${img.title}" loading="lazy"/>
+          <div class="masonry-overlay">
+            <div class="masonry-caption">
+              <strong>${img.title}</strong>
+              ${img.cat}
+            </div>
+          </div>
+          <div class="masonry-zoom-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+          </div>
+        </div>
+      `).join('');
+
+      // Attach click handlers
+      grid.querySelectorAll('.masonry-item').forEach(item => {
+        item.addEventListener('click', () => openLightbox(+item.dataset.index));
+      });
+
+      // Re-observe
+      grid.querySelectorAll('.reveal').forEach(el => scrollObs.observe(el));
+    }
+
+    // ── Lightbox ───────────────────────────────────────────────
+    const lightbox   = document.getElementById('lightbox');
+    const lbImg      = document.getElementById('lightboxImg');
+    const lbTitle    = document.getElementById('lightboxTitle');
+    const lbSub      = document.getElementById('lightboxSub');
+    const lbCounter  = document.getElementById('lightboxCounter');
+
+    function openLightbox(index) {
+      currentIndex = index;
+      showImage(index);
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    function showImage(index) {
+      const img = filteredImages[index];
+      lbImg.src   = img.url;
+      lbImg.alt   = img.title;
+      lbTitle.textContent = img.title;
+      lbSub.textContent   = img.cat;
+      lbCounter.textContent = `${index + 1} / ${filteredImages.length}`;
+    }
+    function prevImage() {
+      currentIndex = (currentIndex - 1 + filteredImages.length) % filteredImages.length;
+      showImage(currentIndex);
+    }
+    function nextImage() {
+      currentIndex = (currentIndex + 1) % filteredImages.length;
+      showImage(currentIndex);
+    }
+
+    document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+    document.getElementById('lightboxBackdrop').addEventListener('click', closeLightbox);
+    document.getElementById('lightboxPrev').addEventListener('click', prevImage);
+    document.getElementById('lightboxNext').addEventListener('click', nextImage);
+    document.addEventListener('keydown', e => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'ArrowRight') nextImage();
+    });
+
+    // Swipe support
+    let touchStartX = 0;
+    lightbox.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+    lightbox.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      if (dx > 50) prevImage();
+      if (dx < -50) nextImage();
+    });
+
+    // ── Filter Tabs ────────────────────────────────────────────
+    document.querySelectorAll('.gallery-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.gallery-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filterAndRender(btn.dataset.filter);
+      });
+    });
+
+    // ── Scroll Observer ────────────────────────────────────────
+    const scrollObs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); scrollObs.unobserve(e.target); }});
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => scrollObs.observe(el));
+
+    // ── Navbar / Sidebar ───────────────────────────────────────
+    window.addEventListener('scroll', () => document.getElementById('navbar').classList.toggle('scrolled', scrollY > 60));
+    const hb = document.getElementById('hamburgerBtn');
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebarOverlay');
+    hb.addEventListener('click', () => { sb.classList.toggle('open'); ov.classList.toggle('active'); hb.classList.toggle('active'); });
+    ov.addEventListener('click', () => { sb.classList.remove('open'); ov.classList.remove('active'); hb.classList.remove('active'); });
+    document.getElementById('sidebarClose').addEventListener('click', () => { sb.classList.remove('open'); ov.classList.remove('active'); hb.classList.remove('active'); });
+
+    // ── Cursor ─────────────────────────────────────────────────
+    const dot=document.getElementById('cursorDot'), ring=document.getElementById('cursorRing');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+    (function anim(){ dot.style.left=mx+'px'; dot.style.top=my+'px'; rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(anim); })();
+
+    // Cart badge from localStorage
+    const cart = JSON.parse(localStorage.getItem('ms_cart_v2')||'[]');
+    document.getElementById('cartBadge').textContent = cart.reduce((s,i)=>s+i.qty,0);
+
+    loadGallery();
+  </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+# netlify.toml — MaheshwariSales deployment config
+
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/admin"
+  to   = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/products"
+  to   = "/products.html"
+  status = 200
+
+[[redirects]]
+  from = "/gallery"
+  to   = "/gallery.html"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to   = "/login.html"
+  status = 200
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/styles.css"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

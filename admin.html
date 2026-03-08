@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — MaheshwariSales</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#0a0a0a; --bg2:#0f0f0f; --bg3:#161616; --bg4:#1e1e1e;
+      --gold:#c9a84c; --gold-light:#e8c97a; --gold-dim:#7a6030;
+      --silver:#b8bec7; --silver-dim:#6b7280; --white:#f5f0e8;
+      --error:#e05c5c; --success:#4caf82; --warning:#e0a84c;
+      --border: rgba(255,255,255,0.06);
+      --border-gold: rgba(201,168,76,0.18);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--white);font-family:'Jost',sans-serif;font-weight:300;min-height:100vh;cursor:none;}
+    ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:2px;}
+    .cursor-dot{width:5px;height:5px;background:var(--gold);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+    .cursor-ring{width:28px;height:28px;border:1px solid rgba(201,168,76,0.5);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all 0.15s ease;}
+
+    /* ── Admin Shell ── */
+    .admin-shell { display:flex; min-height:100vh; }
+
+    /* ── Sidebar ── */
+    .admin-sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--bg2);
+      border-right: 1px solid var(--border-gold);
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-brand {
+      padding: 28px 24px;
+      border-bottom: 1px solid var(--border-gold);
+    }
+    .sidebar-brand-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem; font-weight: 300; color: var(--gold);
+      letter-spacing: 0.08em;
+    }
+    .sidebar-brand-role {
+      font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--silver-dim); margin-top: 3px;
+    }
+    .sidebar-nav { padding: 20px 12px; flex: 1; }
+    .nav-section-label {
+      font-size: 0.55rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--gold-dim); padding: 0 12px; margin: 16px 0 6px;
+    }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      color: var(--silver-dim); text-decoration: none;
+      font-size: 0.75rem; letter-spacing: 0.08em;
+      border-radius: 2px;
+      transition: all 0.25s ease; cursor: none;
+      background: none; border: none; width: 100%; text-align: left;
+    }
+    .sidebar-link:hover { color: var(--silver); background: rgba(255,255,255,0.03); }
+    .sidebar-link.active { color: var(--gold); background: rgba(201,168,76,0.08); border-left: 2px solid var(--gold); }
+    .sidebar-link svg { flex-shrink: 0; }
+    .sidebar-footer {
+      padding: 16px 12px;
+      border-top: 1px solid var(--border);
+    }
+    .admin-user-info {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; margin-bottom: 4px;
+    }
+    .admin-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(201,168,76,0.15);
+      border: 1px solid var(--border-gold);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.9rem; color: var(--gold);
+      flex-shrink: 0;
+    }
+    .admin-email { font-size: 0.68rem; color: var(--silver-dim); truncate: true; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+
+    /* ── Main Content ── */
+    .admin-main { flex: 1; overflow-x: hidden; }
+
+    /* ── Top Bar ── */
+    .admin-topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,10,0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-gold);
+      padding: 0 32px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem; font-weight: 300; color: var(--white);
+    }
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+    .topbar-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 18px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+      color: var(--bg);
+      font-family: 'Jost', sans-serif;
+      font-size: 0.68rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase;
+      border: none; cursor: none;
+      transition: opacity 0.3s ease, transform 0.2s ease;
+    }
+    .topbar-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .topbar-btn-ghost {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--silver-dim);
+      font-family: 'Jost', sans-serif;
+      font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
+      cursor: none; transition: all 0.3s ease;
+    }
+    .topbar-btn-ghost:hover { border-color: var(--border-gold); color: var(--silver); }
+
+    /* ── Stats ── */
+    .admin-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 16px; padding: 24px 32px;
+    }
+    .stat-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 20px 22px;
+      transition: border-color 0.3s ease;
+    }
+    .stat-card:hover { border-color: var(--border-gold); }
+    .stat-card-label { font-size: 0.58rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--silver-dim); margin-bottom: 8px; }
+    .stat-card-value { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 300; color: var(--gold); line-height: 1; }
+    .stat-card-sub { font-size: 0.65rem; color: var(--silver-dim); margin-top: 4px; }
+
+    /* ── Table Section ── */
+    .table-section { padding: 0 32px 40px; }
+    .table-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; flex-wrap: wrap; gap: 12px;
+    }
+    .table-search-wrap { position: relative; }
+    .table-search {
+      padding: 9px 14px 9px 36px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--white);
+      font-family: 'Jost', sans-serif; font-size: 0.78rem;
+      outline: none; width: 260px;
+      transition: border-color 0.3s ease;
+    }
+    .table-search::placeholder { color: var(--silver-dim); }
+    .table-search:focus { border-color: var(--border-gold); }
+    .table-search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--silver-dim); pointer-events: none; }
+    .cat-filter-tabs { display: flex; gap: 4px; }
+    .cat-tab {
+      padding: 7px 14px;
+      background: none; border: 1px solid var(--border);
+      color: var(--silver-dim);
+      font-family: 'Jost', sans-serif; font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+      cursor: none; transition: all 0.25s ease;
+    }
+    .cat-tab:hover { color: var(--silver); border-color: rgba(255,255,255,0.12); }
+    .cat-tab.active { color: var(--gold); border-color: var(--border-gold); background: rgba(201,168,76,0.06); }
+
+    /* Table */
+    .products-table-wrap {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg4); border-bottom: 1px solid var(--border-gold); }
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.58rem; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--gold-dim); font-weight: 400;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s ease;
+    }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody tr:last-child { border-bottom: none; }
+    td { padding: 12px 16px; font-size: 0.78rem; color: var(--silver); vertical-align: middle; }
+
+    .td-img { width: 44px; height: 44px; object-fit: cover; background: var(--bg4); flex-shrink: 0; }
+    .td-name { color: var(--white); font-size: 0.8rem; max-width: 200px; }
+    .td-cat {
+      display: inline-block; padding: 2px 8px;
+      background: rgba(201,168,76,0.08);
+      border: 1px solid rgba(201,168,76,0.18);
+      color: var(--gold); font-size: 0.62rem; letter-spacing: 0.1em;
+    }
+    .td-price { color: var(--gold); font-size: 0.85rem; }
+    .td-stock-low { color: var(--error); }
+    .td-stock-ok  { color: var(--success); }
+
+    /* Inline edit */
+    .inline-input {
+      background: var(--bg); border: 1px solid var(--border-gold);
+      color: var(--white); padding: 4px 8px;
+      font-family: 'Jost', sans-serif; font-size: 0.78rem;
+      width: 90px; outline: none;
+    }
+    .inline-input:focus { border-color: var(--gold); }
+
+    /* Action buttons */
+    .action-btns { display: flex; gap: 6px; }
+    .btn-edit, .btn-save, .btn-delete {
+      padding: 5px 10px;
+      font-family: 'Jost', sans-serif; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+      border: none; cursor: none; transition: all 0.2s ease;
+    }
+    .btn-edit  { background: rgba(184,190,199,0.08); color: var(--silver); border: 1px solid var(--border); }
+    .btn-edit:hover { background: rgba(184,190,199,0.14); color: var(--white); }
+    .btn-save  { background: rgba(76,175,130,0.12); color: var(--success); border: 1px solid rgba(76,175,130,0.25); display:none; }
+    .btn-save:hover { background: rgba(76,175,130,0.2); }
+    .btn-delete { background: rgba(224,92,92,0.08); color: var(--error); border: 1px solid rgba(224,92,92,0.2); }
+    .btn-delete:hover { background: rgba(224,92,92,0.16); }
+
+    /* ── Modals ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 3000;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg3);
+      border: 1px solid var(--border-gold);
+      width: 100%; max-width: 560px; max-height: 90vh;
+      overflow-y: auto;
+      transform: scale(0.94) translateY(20px);
+      transition: transform 0.35s cubic-bezier(0.34,1.2,0.64,1);
+      position: relative;
+    }
+    .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+    .modal-header {
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid var(--border-gold);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: var(--bg3); z-index: 1;
+    }
+    .modal-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem; font-weight: 300; color: var(--white);
+    }
+    .modal-close {
+      background: none; border: none; color: var(--silver-dim);
+      cursor: none; font-size: 1.2rem;
+      transition: color 0.3s ease, transform 0.3s ease;
+    }
+    .modal-close:hover { color: var(--gold); transform: rotate(90deg); }
+    .modal-body { padding: 24px 28px; }
+
+    /* Modal Form */
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .modal-grid.full { grid-template-columns: 1fr; }
+    .mf-group { display: flex; flex-direction: column; gap: 6px; }
+    .mf-group.span2 { grid-column: 1/-1; }
+    .mf-label { font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--silver-dim); }
+    .mf-input, .mf-select, .mf-textarea {
+      padding: 10px 13px;
+      background: var(--bg4); border: 1px solid var(--border);
+      color: var(--white);
+      font-family: 'Jost', sans-serif; font-size: 0.82rem;
+      outline: none; transition: border-color 0.3s ease;
+    }
+    .mf-input::placeholder, .mf-textarea::placeholder { color: var(--silver-dim); }
+    .mf-input:focus, .mf-select:focus, .mf-textarea:focus { border-color: var(--border-gold); }
+    .mf-select option { background: #111; }
+    .mf-textarea { resize: vertical; min-height: 80px; }
+
+    /* Image Upload */
+    .upload-zone {
+      border: 2px dashed rgba(201,168,76,0.2);
+      padding: 28px 20px; text-align: center;
+      cursor: none; transition: all 0.3s ease;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: rgba(201,168,76,0.5);
+      background: rgba(201,168,76,0.04);
+    }
+    .upload-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0;
+      cursor: none; width: 100%; height: 100%;
+    }
+    .upload-icon { color: var(--gold-dim); margin: 0 auto 8px; }
+    .upload-text { font-size: 0.75rem; color: var(--silver-dim); line-height: 1.6; }
+    .upload-text strong { color: var(--gold); font-weight: 400; }
+    .upload-preview {
+      margin-top: 12px; display: none;
+      align-items: center; gap: 12px;
+      padding: 10px; background: var(--bg4);
+      border: 1px solid var(--border);
+    }
+    .upload-preview img { width: 48px; height: 48px; object-fit: cover; }
+    .upload-preview span { font-size: 0.72rem; color: var(--silver); }
+    .upload-progress {
+      height: 2px; background: var(--border); margin-top: 8px; display: none;
+    }
+    .upload-progress-bar {
+      height: 100%; background: var(--gold);
+      width: 0%; transition: width 0.3s ease;
+    }
+
+    /* URL input toggle */
+    .url-toggle {
+      font-size: 0.62rem; color: var(--gold-dim); letter-spacing: 0.1em;
+      background: none; border: none; cursor: none; margin-top: 6px;
+      text-decoration: underline; transition: color 0.2s ease;
+    }
+    .url-toggle:hover { color: var(--gold); }
+
+    /* Modal Footer */
+    .modal-footer {
+      padding: 16px 28px 24px;
+      display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+    }
+    .btn-modal-cancel {
+      padding: 10px 20px; background: none;
+      border: 1px solid var(--border); color: var(--silver-dim);
+      font-family: 'Jost', sans-serif; font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: none; transition: all 0.3s ease;
+    }
+    .btn-modal-cancel:hover { border-color: var(--border-gold); color: var(--silver); }
+    .btn-modal-submit {
+      padding: 10px 28px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+      color: var(--bg);
+      font-family: 'Jost', sans-serif; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase;
+      border: none; cursor: none;
+      transition: opacity 0.3s ease, transform 0.2s ease;
+    }
+    .btn-modal-submit:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-modal-submit:disabled { opacity: 0.5; }
+
+    /* ── Confirm Modal ── */
+    .confirm-modal { max-width: 400px; }
+    .confirm-icon { text-align: center; font-size: 2.5rem; margin-bottom: 12px; }
+    .confirm-title { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 300; color: var(--white); text-align: center; margin-bottom: 8px; }
+    .confirm-body { font-size: 0.8rem; color: var(--silver-dim); text-align: center; line-height: 1.6; }
+    .btn-confirm-delete {
+      padding: 10px 28px;
+      background: rgba(224,92,92,0.15);
+      border: 1px solid rgba(224,92,92,0.4);
+      color: var(--error);
+      font-family: 'Jost', sans-serif; font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: none; transition: all 0.3s ease;
+    }
+    .btn-confirm-delete:hover { background: rgba(224,92,92,0.25); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px; z-index: 9000;
+      padding: 14px 20px;
+      background: var(--bg3); border: 1px solid var(--border-gold);
+      color: var(--white); font-size: 0.75rem; letter-spacing: 0.06em;
+      max-width: 340px; backdrop-filter: blur(20px);
+      transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.77,0,0.175,1);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .toast.show { transform: translateX(0); }
+    .toast-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .toast.success .toast-dot { background: var(--success); }
+    .toast.error   .toast-dot { background: var(--error); }
+
+    /* Empty table */
+    .table-empty { text-align: center; padding: 60px 20px; color: var(--silver-dim); }
+    .table-empty-icon { font-size: 2rem; margin-bottom: 10px; opacity: 0.4; }
+    .skeleton-row td { padding: 10px 16px; }
+    .skeleton-cell { height: 14px; background: linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:2px; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    @media(max-width:1024px){ .admin-stats{grid-template-columns:repeat(2,1fr);} }
+    @media(max-width:768px){ .admin-sidebar{display:none;} .admin-stats{padding:16px;} .table-section{padding:0 16px 40px;} .table-toolbar{flex-direction:column;align-items:flex-start;} .modal-grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- ── Loading Screen ── -->
+  <div id="loadingScreen" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--gold);letter-spacing:0.1em;">Verifying Session…</div>
+    <div style="width:40px;height:40px;border:1px solid rgba(201,168,76,0.2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  </div>
+
+  <div class="admin-shell" id="adminShell" style="display:none;">
+
+    <!-- ── Sidebar ── -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-name">MaheshwariSales</div>
+        <div class="sidebar-brand-role">Admin Dashboard</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Management</div>
+        <button class="sidebar-link active" onclick="showSection('products')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Products
+        </button>
+        <button class="sidebar-link" onclick="window.open('index.html','_blank')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          View Store
+        </button>
+        <div class="nav-section-label" style="margin-top:24px;">Account</div>
+        <button class="sidebar-link" id="logoutBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="admin-user-info">
+          <div class="admin-avatar" id="adminAvatar">A</div>
+          <div class="admin-email" id="adminEmail">Loading…</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main ── -->
+    <div class="admin-main">
+
+      <!-- Top Bar -->
+      <div class="admin-topbar">
+        <div class="topbar-title">Products Management</div>
+        <div class="topbar-actions">
+          <a href="index.html" class="topbar-btn-ghost">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            Store
+          </a>
+          <button class="topbar-btn" id="addProductBtn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Product
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="admin-stats" id="adminStats">
+        <div class="stat-card"><div class="stat-card-label">Total Products</div><div class="stat-card-value" id="statTotal">–</div></div>
+        <div class="stat-card"><div class="stat-card-label">Categories</div><div class="stat-card-value" style="color:var(--silver)">4</div></div>
+        <div class="stat-card"><div class="stat-card-label">Low Stock (&lt;10)</div><div class="stat-card-value" id="statLowStock" style="color:var(--error)">–</div></div>
+        <div class="stat-card"><div class="stat-card-label">Total Value</div><div class="stat-card-value" id="statValue" style="font-size:1.3rem">–</div></div>
+      </div>
+
+      <!-- Table Section -->
+      <div class="table-section">
+        <div class="table-toolbar">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <div class="table-search-wrap">
+              <svg class="table-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input class="table-search" id="tableSearch" placeholder="Search products…" autocomplete="off"/>
+            </div>
+            <div class="cat-filter-tabs">
+              <button class="cat-tab active" data-cat="All">All</button>
+              <button class="cat-tab" data-cat="Taps">Taps</button>
+              <button class="cat-tab" data-cat="Washbasins">Washbasins</button>
+              <button class="cat-tab" data-cat="Pipes">Pipes</button>
+              <button class="cat-tab" data-cat="Switches">Switches</button>
+            </div>
+          </div>
+          <div style="font-size:0.68rem;color:var(--silver-dim);letter-spacing:0.08em;" id="tableResultCount"></div>
+        </div>
+
+        <div class="products-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price (₹)</th>
+                <th>Stock</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="productsTableBody">
+              <!-- Skeleton rows -->
+              <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:44px;height:44px"></div></td><td><div class="skeleton-cell" style="width:180px"></div></td><td><div class="skeleton-cell" style="width:80px"></div></td><td><div class="skeleton-cell" style="width:70px"></div></td><td><div class="skeleton-cell" style="width:50px"></div></td><td><div class="skeleton-cell" style="width:120px"></div></td></tr>
+              <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:44px;height:44px"></div></td><td><div class="skeleton-cell" style="width:200px"></div></td><td><div class="skeleton-cell" style="width:90px"></div></td><td><div class="skeleton-cell" style="width:60px"></div></td><td><div class="skeleton-cell" style="width:40px"></div></td><td><div class="skeleton-cell" style="width:120px"></div></td></tr>
+              <tr class="skeleton-row"><td><div class="skeleton-cell" style="width:44px;height:44px"></div></td><td><div class="skeleton-cell" style="width:160px"></div></td><td><div class="skeleton-cell" style="width:70px"></div></td><td><div class="skeleton-cell" style="width:80px"></div></td><td><div class="skeleton-cell" style="width:55px"></div></td><td><div class="skeleton-cell" style="width:120px"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       ADD / EDIT PRODUCT MODAL
+  ═══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Add New Product</div>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div class="mf-group span2">
+            <label class="mf-label">Product Name *</label>
+            <input class="mf-input" id="mfName" placeholder="e.g. Prestige Gold Basin Tap"/>
+          </div>
+          <div class="mf-group">
+            <label class="mf-label">Category *</label>
+            <select class="mf-select" id="mfCategory">
+              <option value="">Select…</option>
+              <option>Taps</option><option>Washbasins</option>
+              <option>Pipes</option><option>Switches</option>
+            </select>
+          </div>
+          <div class="mf-group">
+            <label class="mf-label">Price (₹) *</label>
+            <input class="mf-input" id="mfPrice" type="number" min="0" placeholder="4999"/>
+          </div>
+          <div class="mf-group">
+            <label class="mf-label">Stock Quantity *</label>
+            <input class="mf-input" id="mfStock" type="number" min="0" placeholder="25"/>
+          </div>
+          <div class="mf-group span2">
+            <label class="mf-label">Description</label>
+            <textarea class="mf-textarea" id="mfDesc" placeholder="Brief product description…"></textarea>
+          </div>
+          <div class="mf-group span2">
+            <label class="mf-label">Product Image</label>
+            <!-- Upload Zone -->
+            <div class="upload-zone" id="uploadZone">
+              <input type="file" id="imageFileInput" accept="image/*"/>
+              <svg class="upload-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <div class="upload-text"><strong>Click to upload</strong> or drag & drop<br/>PNG, JPG, WebP up to 5MB</div>
+            </div>
+            <div class="upload-preview" id="uploadPreview">
+              <img id="uploadPreviewImg" src="" alt=""/>
+              <span id="uploadPreviewName"></span>
+            </div>
+            <div class="upload-progress" id="uploadProgress"><div class="upload-progress-bar" id="uploadProgressBar"></div></div>
+            <button class="url-toggle" id="urlToggleBtn" type="button">Or enter image URL instead</button>
+            <input class="mf-input" id="mfImageUrl" placeholder="https://images.unsplash.com/…" style="display:none;margin-top:6px;"/>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" id="modalCancelBtn">Cancel</button>
+        <button class="btn-modal-submit" id="modalSubmitBtn">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       CONFIRM DELETE MODAL
+  ═══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal confirm-modal">
+      <div class="modal-body" style="padding:36px 28px 8px">
+        <div class="confirm-icon">🗑️</div>
+        <div class="confirm-title">Delete Product?</div>
+        <p class="confirm-body" id="confirmBody">This action cannot be undone. The product will be permanently removed from your database.</p>
+      </div>
+      <div class="modal-footer" style="justify-content:center;gap:12px;padding-top:20px;">
+        <button class="btn-modal-cancel" id="confirmCancelBtn">Keep It</button>
+        <button class="btn-confirm-delete" id="confirmDeleteBtn">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"><div class="toast-dot"></div><span id="toastMsg"></span></div>
+
+  <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://pwlappfcyqechcoiqcjk.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB3bGFwcGZjeXFlY2hjb2lxY2prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NzA0NjUsImV4cCI6MjA4ODU0NjQ2NX0.364XmLPVCFGDVlrdNrW_JAOUQXmAKDYyp_mfKDmMUGI'
+    );
+
+    // ── Protected Route ────────────────────────────────────────
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; }
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('adminShell').style.display = 'flex';
+
+    const userEmail = session.user.email;
+    document.getElementById('adminEmail').textContent = userEmail;
+    document.getElementById('adminAvatar').textContent = userEmail[0].toUpperCase();
+
+    // ── State ──────────────────────────────────────────────────
+    let allProducts   = [];
+    let editingId     = null;
+    let deleteTargetId = null;
+    let uploadedImageUrl = null;
+    let showUrlInput  = false;
+    let tableFilter   = 'All';
+    let tableSearch   = '';
+
+    // ── Fetch Products ─────────────────────────────────────────
+    async function fetchProducts() {
+      const { data, error } = await supabase.from('products').select('*').order('id');
+      if (error) { showToast('Failed to load products', 'error'); return; }
+      allProducts = data;
+      updateStats(data);
+      renderTable();
+    }
+
+    function updateStats(data) {
+      document.getElementById('statTotal').textContent = data.length;
+      document.getElementById('statLowStock').textContent = data.filter(p => p.stock < 10).length;
+      const totalVal = data.reduce((s, p) => s + p.price * p.stock, 0);
+      document.getElementById('statValue').textContent = '₹' + (totalVal/100000).toFixed(1) + 'L';
+    }
+
+    // ── Render Table ───────────────────────────────────────────
+    function renderTable() {
+      let items = [...allProducts];
+      if (tableFilter !== 'All') items = items.filter(p => p.category === tableFilter);
+      if (tableSearch) items = items.filter(p => p.name.toLowerCase().includes(tableSearch.toLowerCase()));
+
+      document.getElementById('tableResultCount').textContent = `${items.length} product${items.length !== 1 ? 's' : ''}`;
+
+      const tbody = document.getElementById('productsTableBody');
+      if (!items.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty"><div class="table-empty-icon">🔍</div><div>No products found</div></div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map(p => `
+        <tr id="row-${p.id}">
+          <td><img class="td-img" src="${p.image_url}" alt="${p.name}" loading="lazy"/></td>
+          <td class="td-name">${p.name}</td>
+          <td><span class="td-cat">${p.category}</span></td>
+          <td>
+            <span class="td-price view-price-${p.id}">₹${p.price.toLocaleString('en-IN')}</span>
+            <input class="inline-input edit-price-${p.id}" type="number" value="${p.price}" style="display:none"/>
+          </td>
+          <td>
+            <span class="${p.stock < 10 ? 'td-stock-low' : 'td-stock-ok'} view-stock-${p.id}">${p.stock}</span>
+            <input class="inline-input edit-stock-${p.id}" type="number" value="${p.stock}" style="display:none"/>
+          </td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-edit" onclick="window.startEdit(${p.id})">Edit</button>
+              <button class="btn-save" id="save-${p.id}" onclick="window.saveInline(${p.id})">Save</button>
+              <button class="btn-delete" onclick="window.confirmDelete(${p.id}, '${p.name.replace(/'/g,"\\'")}')">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // ── Inline Edit ────────────────────────────────────────────
+    window.startEdit = function(id) {
+      // Hide any previous edit
+      if (editingId && editingId !== id) cancelEdit(editingId);
+      editingId = id;
+      document.querySelector(`.view-price-${id}`).style.display = 'none';
+      document.querySelector(`.view-stock-${id}`).style.display = 'none';
+      document.querySelector(`.edit-price-${id}`).style.display = 'inline-block';
+      document.querySelector(`.edit-stock-${id}`).style.display = 'inline-block';
+      document.querySelector(`.btn-edit[onclick="window.startEdit(${id})"]`).style.display = 'none';
+      document.getElementById(`save-${id}`).style.display = 'inline-block';
+    };
+
+    function cancelEdit(id) {
+      document.querySelector(`.view-price-${id}`).style.display = '';
+      document.querySelector(`.view-stock-${id}`).style.display = '';
+      document.querySelector(`.edit-price-${id}`).style.display = 'none';
+      document.querySelector(`.edit-stock-${id}`).style.display = 'none';
+      document.querySelector(`.btn-edit[onclick="window.startEdit(${id})"]`).style.display = '';
+      document.getElementById(`save-${id}`).style.display = 'none';
+    }
+
+    window.saveInline = async function(id) {
+      const newPrice = +document.querySelector(`.edit-price-${id}`).value;
+      const newStock = +document.querySelector(`.edit-stock-${id}`).value;
+      if (isNaN(newPrice) || newPrice < 0 || isNaN(newStock) || newStock < 0) {
+        showToast('Invalid values', 'error'); return;
+      }
+      const { error } = await supabase.from('products').update({ price: newPrice, stock: newStock }).eq('id', id);
+      if (error) { showToast('Update failed: ' + error.message, 'error'); return; }
+      const product = allProducts.find(p => p.id === id);
+      product.price = newPrice; product.stock = newStock;
+      editingId = null;
+      updateStats(allProducts);
+      renderTable();
+      showToast('Product updated successfully', 'success');
+    };
+
+    // ── Delete ─────────────────────────────────────────────────
+    window.confirmDelete = function(id, name) {
+      deleteTargetId = id;
+      document.getElementById('confirmBody').textContent = `"${name}" will be permanently deleted. This cannot be undone.`;
+      document.getElementById('confirmModal').classList.add('open');
+    };
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+      if (!deleteTargetId) return;
+      const { error } = await supabase.from('products').delete().eq('id', deleteTargetId);
+      closeConfirmModal();
+      if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
+      allProducts = allProducts.filter(p => p.id !== deleteTargetId);
+      deleteTargetId = null;
+      updateStats(allProducts);
+      renderTable();
+      showToast('Product deleted', 'success');
+    });
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.remove('open');
+    }
+    document.getElementById('confirmCancelBtn').addEventListener('click', closeConfirmModal);
+
+    // ── Add Product Modal ──────────────────────────────────────
+    function openAddModal() {
+      editingId = null; uploadedImageUrl = null;
+      document.getElementById('modalTitle').textContent = 'Add New Product';
+      document.getElementById('modalSubmitBtn').textContent = 'Add Product';
+      ['mfName','mfPrice','mfStock','mfDesc','mfImageUrl'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('mfCategory').value = '';
+      document.getElementById('uploadPreview').style.display = 'none';
+      document.getElementById('uploadProgress').style.display = 'none';
+      document.getElementById('mfImageUrl').style.display = showUrlInput ? 'block' : 'none';
+      document.getElementById('productModal').classList.add('open');
+    }
+    document.getElementById('addProductBtn').addEventListener('click', openAddModal);
+
+    function closeModal() { document.getElementById('productModal').classList.remove('open'); }
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+
+    // ── Image Upload ───────────────────────────────────────────
+    const imageFileInput = document.getElementById('imageFileInput');
+    const uploadZone     = document.getElementById('uploadZone');
+    const uploadPreview  = document.getElementById('uploadPreview');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressBar    = document.getElementById('uploadProgressBar');
+
+    // Drag & drop
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault(); uploadZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleImageFile(file);
+    });
+    imageFileInput.addEventListener('change', e => { if (e.target.files[0]) handleImageFile(e.target.files[0]); });
+
+    async function handleImageFile(file) {
+      if (file.size > 5 * 1024 * 1024) { showToast('File too large (max 5MB)', 'error'); return; }
+
+      // Preview
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('uploadPreviewImg').src = e.target.result;
+        document.getElementById('uploadPreviewName').textContent = file.name;
+        uploadPreview.style.display = 'flex';
+      };
+      reader.readAsDataURL(file);
+
+      // Upload to Supabase Storage
+      // IMPORTANT: Create a bucket named 'products' in Supabase Storage (set to public)
+      uploadProgress.style.display = 'block';
+      progressBar.style.width = '30%';
+
+      const fileName = `${Date.now()}-${file.name.replace(/\s/g, '-')}`;
+      const { data, error } = await supabase.storage
+        .from('products')          // ← Your bucket name
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+      progressBar.style.width = '100%';
+      setTimeout(() => { uploadProgress.style.display = 'none'; progressBar.style.width = '0%'; }, 600);
+
+      if (error) {
+        // If bucket doesn't exist yet, fall back to local preview URL
+        showToast('Storage upload failed — using URL field instead', 'error');
+        document.getElementById('mfImageUrl').style.display = 'block';
+        document.getElementById('urlToggleBtn').style.display = 'none';
+        uploadedImageUrl = null;
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName);
+      uploadedImageUrl = publicUrl;
+      document.getElementById('mfImageUrl').value = publicUrl;
+      showToast('Image uploaded!', 'success');
+    }
+
+    // URL toggle
+    document.getElementById('urlToggleBtn').addEventListener('click', () => {
+      showUrlInput = !showUrlInput;
+      document.getElementById('mfImageUrl').style.display = showUrlInput ? 'block' : 'none';
+      document.getElementById('urlToggleBtn').textContent = showUrlInput ? 'Hide URL field' : 'Or enter image URL instead';
+    });
+
+    // ── Submit New Product ─────────────────────────────────────
+    document.getElementById('modalSubmitBtn').addEventListener('click', async () => {
+      const name     = document.getElementById('mfName').value.trim();
+      const category = document.getElementById('mfCategory').value;
+      const price    = +document.getElementById('mfPrice').value;
+      const stock    = +document.getElementById('mfStock').value;
+      const desc     = document.getElementById('mfDesc').value.trim();
+      const imageUrl = document.getElementById('mfImageUrl').value.trim() || uploadedImageUrl
+                     || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format';
+
+      if (!name || !category || !price || stock === '') {
+        showToast('Please fill in all required fields', 'error'); return;
+      }
+
+      const btn = document.getElementById('modalSubmitBtn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+
+      // Generate next ID
+      const nextId = Math.max(...allProducts.map(p => p.id), 50) + 1;
+
+      const { data, error } = await supabase.from('products').insert([{
+        id: nextId, name, category, price, stock,
+        description: desc, image_url: imageUrl
+      }]).select();
+
+      btn.disabled = false; btn.textContent = 'Add Product';
+
+      if (error) { showToast('Failed: ' + error.message, 'error'); return; }
+
+      allProducts.push(data[0]);
+      updateStats(allProducts);
+      renderTable();
+      closeModal();
+      showToast(`"${name}" added successfully`, 'success');
+    });
+
+    // ── Search & Filter ────────────────────────────────────────
+    let searchTimer;
+    document.getElementById('tableSearch').addEventListener('input', e => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { tableSearch = e.target.value.trim(); renderTable(); }, 250);
+    });
+    document.querySelectorAll('.cat-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        tableFilter = btn.dataset.cat;
+        renderTable();
+      });
+    });
+
+    // ── Logout ─────────────────────────────────────────────────
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = 'login.html';
+    });
+
+    // ── Close modals on overlay click ──────────────────────────
+    document.getElementById('productModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+    document.getElementById('confirmModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeConfirmModal(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { closeModal(); closeConfirmModal(); }
+    });
+
+    // ── Toast ──────────────────────────────────────────────────
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.className = `toast ${type}`;
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── Cursor ─────────────────────────────────────────────────
+    const dot=document.getElementById('cursorDot'), ring=document.getElementById('cursorRing');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+    (function anim(){ dot.style.left=mx+'px'; dot.style.top=my+'px'; rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(anim); })();
+
+    // ── Init ───────────────────────────────────────────────────
+    fetchProducts();
+  </script>
+</body>
+</html>
