@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Account — MaheshwariSales</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    .page-header { padding:140px 80px 60px; background:linear-gradient(180deg,rgba(10,10,10,0.0) 0%,var(--bg) 100%),url('https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1600&auto=format') center/cover no-repeat; border-bottom:1px solid rgba(201,168,76,0.1); position:relative; }
+    .page-header::before { content:''; position:absolute; inset:0; background:rgba(10,10,10,0.8); }
+    .page-header-content { position:relative; z-index:1; }
+    .breadcrumb { display:flex; align-items:center; gap:8px; font-size:0.68rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--silver-dim); margin-bottom:16px; }
+    .breadcrumb a { color:var(--gold); text-decoration:none; }
+    .page-title { font-family:'Cormorant Garamond',serif; font-size:clamp(2.4rem,5vw,4rem); font-weight:300; color:var(--white); }
+    .page-title em { font-style:italic; color:var(--gold-light); }
+
+    /* Account container */
+    .account-wrapper { max-width:1100px; margin:0 auto; padding:80px 40px; }
+
+    /* Tab bar for guest */
+    .auth-tabs { display:flex; border-bottom:1px solid rgba(201,168,76,0.15); margin-bottom:48px; gap:0; }
+    .auth-tab { flex:1; padding:16px 24px; background:none; border:none; color:var(--silver-dim); font-family:'Jost',sans-serif; font-size:0.72rem; letter-spacing:0.2em; text-transform:uppercase; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.3s; }
+    .auth-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+    .auth-tab:hover:not(.active) { color:var(--silver); }
+
+    /* Auth card */
+    .auth-card { max-width:480px; margin:0 auto; }
+    .auth-card h2 { font-family:'Cormorant Garamond',serif; font-size:2rem; font-weight:300; color:var(--white); margin-bottom:8px; }
+    .auth-card p { font-size:0.8rem; color:var(--silver-dim); margin-bottom:36px; line-height:1.7; }
+    .form-group { margin-bottom:20px; }
+    .form-label { display:block; font-size:0.62rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+    .form-input { width:100%; padding:14px 16px; background:rgba(255,255,255,0.04); border:1px solid rgba(201,168,76,0.15); color:var(--white); font-family:'Jost',sans-serif; font-size:0.85rem; outline:none; transition:border-color 0.3s; }
+    .form-input::placeholder { color:var(--silver-dim); }
+    .form-input:focus { border-color:rgba(201,168,76,0.5); }
+    .form-error { font-size:0.7rem; color:#e05c5c; margin-top:6px; display:none; }
+    .form-error.show { display:block; }
+    .btn-form { width:100%; padding:16px; background:linear-gradient(135deg,var(--gold),var(--gold-dim)); color:var(--bg); font-family:'Jost',sans-serif; font-size:0.72rem; font-weight:500; letter-spacing:0.22em; text-transform:uppercase; border:none; cursor:pointer; margin-top:8px; transition:opacity 0.3s,transform 0.3s; }
+    .btn-form:hover { opacity:0.9; transform:translateY(-1px); }
+    .btn-form:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+    .auth-divider { text-align:center; margin:24px 0; font-size:0.65rem; color:var(--silver-dim); letter-spacing:0.1em; text-transform:uppercase; position:relative; }
+    .auth-divider::before,.auth-divider::after { content:''; position:absolute; top:50%; width:calc(50% - 30px); height:1px; background:rgba(201,168,76,0.12); }
+    .auth-divider::before { left:0; } .auth-divider::after { right:0; }
+    .auth-msg { padding:12px 16px; border-radius:2px; font-size:0.75rem; margin-bottom:16px; display:none; }
+    .auth-msg.success { background:rgba(100,200,100,0.08); border:1px solid rgba(100,200,100,0.25); color:#7ecf7e; display:block; }
+    .auth-msg.error { background:rgba(224,92,92,0.08); border:1px solid rgba(224,92,92,0.25); color:#e05c5c; display:block; }
+
+    /* Dashboard (logged in) */
+    .dashboard { display:none; }
+    .dashboard.active { display:block; }
+    .dash-welcome { display:flex; align-items:center; justify-content:space-between; margin-bottom:48px; flex-wrap:wrap; gap:16px; }
+    .dash-user { display:flex; align-items:center; gap:20px; }
+    .dash-avatar { width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg,var(--gold-dim),var(--gold)); display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond',serif; font-size:1.4rem; color:var(--bg); font-weight:600; flex-shrink:0; }
+    .dash-user-info h3 { font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:300; color:var(--white); }
+    .dash-user-info p { font-size:0.72rem; color:var(--silver-dim); margin-top:2px; }
+    .btn-signout { padding:10px 24px; background:none; border:1px solid rgba(255,255,255,0.1); color:var(--silver-dim); font-family:'Jost',sans-serif; font-size:0.68rem; letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; transition:all 0.3s; }
+    .btn-signout:hover { border-color:rgba(224,92,92,0.4); color:#e05c5c; }
+
+    /* Dash tabs */
+    .dash-tabs { display:flex; gap:0; border-bottom:1px solid rgba(201,168,76,0.12); margin-bottom:40px; }
+    .dash-tab { padding:14px 24px; background:none; border:none; color:var(--silver-dim); font-family:'Jost',sans-serif; font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.3s; }
+    .dash-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+    .dash-tab:hover:not(.active) { color:var(--silver); }
+    .dash-panel { display:none; }
+    .dash-panel.active { display:block; }
+
+    /* Stats cards */
+    .dash-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:40px; }
+    .dash-stat { background:rgba(255,255,255,0.03); border:1px solid rgba(201,168,76,0.1); padding:24px; }
+    .dash-stat-num { font-family:'Cormorant Garamond',serif; font-size:2rem; font-weight:300; color:var(--gold); margin-bottom:4px; }
+    .dash-stat-label { font-size:0.62rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--silver-dim); }
+
+    /* Orders table */
+    .orders-section h3 { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-weight:300; color:var(--white); margin-bottom:24px; }
+    .orders-table { width:100%; border-collapse:collapse; }
+    .orders-table th { text-align:left; font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); padding:12px 16px; border-bottom:1px solid rgba(201,168,76,0.15); font-weight:400; }
+    .orders-table td { padding:16px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.8rem; color:var(--silver); vertical-align:middle; }
+    .orders-table tr:hover td { background:rgba(255,255,255,0.02); }
+    .order-status { display:inline-block; padding:3px 10px; font-size:0.58rem; letter-spacing:0.12em; text-transform:uppercase; border-radius:2px; }
+    .status-delivered { background:rgba(100,200,100,0.1); color:#7ecf7e; border:1px solid rgba(100,200,100,0.2); }
+    .status-processing { background:rgba(201,168,76,0.1); color:var(--gold); border:1px solid rgba(201,168,76,0.2); }
+    .status-shipped { background:rgba(100,160,255,0.1); color:#7eb4ff; border:1px solid rgba(100,160,255,0.2); }
+    .status-cancelled { background:rgba(224,92,92,0.1); color:#e05c5c; border:1px solid rgba(224,92,92,0.2); }
+    .order-details-btn { background:none; border:1px solid rgba(201,168,76,0.2); color:var(--gold-dim); font-family:'Jost',sans-serif; font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase; padding:6px 14px; cursor:pointer; transition:all 0.3s; }
+    .order-details-btn:hover { border-color:var(--gold); color:var(--gold); }
+    .no-orders { text-align:center; padding:60px 20px; color:var(--silver-dim); }
+    .no-orders-icon { font-size:2.5rem; opacity:0.3; margin-bottom:12px; }
+    .no-orders p { font-size:0.82rem; margin-bottom:20px; }
+
+    /* Profile panel */
+    .profile-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .profile-field { }
+    .profile-field label { display:block; font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+    .profile-field input { width:100%; padding:12px 14px; background:rgba(255,255,255,0.04); border:1px solid rgba(201,168,76,0.12); color:var(--white); font-family:'Jost',sans-serif; font-size:0.82rem; outline:none; }
+    .profile-field input:focus { border-color:rgba(201,168,76,0.45); }
+    .profile-field input[readonly] { opacity:0.5; cursor:not-allowed; }
+
+    /* Order modal */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:3000; display:none; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:#111; border:1px solid rgba(201,168,76,0.2); width:90%; max-width:560px; max-height:80vh; overflow-y:auto; padding:36px; position:relative; }
+    .modal-close { position:absolute; top:16px; right:16px; background:none; border:none; color:var(--silver-dim); font-size:1.3rem; cursor:pointer; transition:color 0.3s; }
+    .modal-close:hover { color:var(--gold); }
+    .modal-title { font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:300; color:var(--white); margin-bottom:24px; }
+    .modal-item { display:flex; align-items:center; gap:16px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .modal-item:last-child { border-bottom:none; }
+    .modal-item img { width:56px; height:56px; object-fit:cover; background:var(--bg3); }
+    .modal-item-info { flex:1; }
+    .modal-item-name { font-size:0.88rem; color:var(--white); margin-bottom:3px; }
+    .modal-item-sub { font-size:0.68rem; color:var(--silver-dim); }
+    .modal-item-price { font-size:0.9rem; color:var(--gold); white-space:nowrap; }
+    .modal-total { display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:20px; border-top:1px solid rgba(201,168,76,0.15); }
+    .modal-total span { font-size:0.68rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--silver-dim); }
+    .modal-total strong { font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-weight:300; color:var(--gold); }
+
+    /* Loading spinner */
+    .auth-loading { text-align:center; padding:48px 20px; }
+    .spinner { width:32px; height:32px; border:1px solid rgba(201,168,76,0.2); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 12px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    @media(max-width:768px) {
+      .account-wrapper { padding:48px 20px; }
+      .page-header { padding:120px 24px 48px; }
+      .dash-stats { grid-template-columns:1fr; gap:12px; }
+      .profile-grid { grid-template-columns:1fr; }
+      .orders-table { font-size:0.72rem; }
+      .orders-table th, .orders-table td { padding:10px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- ── NAVBAR ── -->
+  <nav class="navbar" id="navbar">
+    <a href="index.html" class="logo"><span class="logo-maheshwari">Maheshwari</span><span class="logo-dot"></span><span class="logo-sales">Sales</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="collection.html">Collection</a></li>
+      <li><a href="gallery.html">Gallery</a></li>
+      <li><a href="my-account.html" style="color:var(--gold)">My Account</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="collection.html" class="nav-icon-btn" style="position:relative" aria-label="Cart">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span class="cart-badge" id="cartBadge">0</span>
+      </a>
+      <a href="my-account.html" class="nav-icon-btn" aria-label="My Account">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </a>
+      <button class="hamburger" id="hamburgerBtn"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="sidebar" id="sidebar" aria-hidden="true">
+    <div class="sidebar-header"><span class="sidebar-logo">Maheshwari Sales</span><button class="sidebar-close" id="sidebarClose">✕</button></div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li>
+          <button class="category-btn" id="categoryBtn"><span>Categories</span><svg class="category-arrow" width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 7L1 3h8z"/></svg></button>
+          <div class="category-dropdown" id="categoryDropdown">
+            <ul>
+              <li><a href="collection.html?category=Taps"><span class="category-icon">🚿</span> Taps</a></li>
+              <li><a href="collection.html?category=Washbasins"><span class="category-icon">🪣</span> Washbasins</a></li>
+              <li><a href="collection.html?category=Pipes"><span class="category-icon">🔩</span> Pipes</a></li>
+              <li><a href="collection.html?category=Switches"><span class="category-icon">💡</span> Switches</a></li>
+            </ul>
+          </div>
+        </li>
+        <li><a href="collection.html">Collection</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="my-account.html">My Account</a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-footer"><p>Follow Us</p><div class="sidebar-socials"><a href="#">ig</a><a href="#">fb</a><a href="#">yt</a></div></div>
+  </aside>
+
+  <!-- ── PAGE HEADER ── -->
+  <header class="page-header">
+    <div class="page-header-content">
+      <div class="breadcrumb"><a href="index.html">Home</a><span>›</span><span>My Account</span></div>
+      <h1 class="page-title">My <em>Account</em></h1>
+    </div>
+  </header>
+
+  <!-- ── MAIN ── -->
+  <main class="account-wrapper">
+
+    <!-- Loading state -->
+    <div class="auth-loading" id="loadingState">
+      <div class="spinner"></div>
+      <p style="font-size:0.72rem;color:var(--silver-dim);letter-spacing:0.1em;">Checking session…</p>
+    </div>
+
+    <!-- ── GUEST: Sign In / Register ── -->
+    <div id="guestSection" style="display:none;">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabSignIn" onclick="switchAuthTab('signin')">Sign In</button>
+        <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Create Account</button>
+      </div>
+
+      <!-- Sign In -->
+      <div class="auth-card" id="signinPanel">
+        <h2>Welcome Back</h2>
+        <p>Sign in to view your order history, manage your profile and save your favourites.</p>
+        <div class="auth-msg" id="signinMsg"></div>
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="siEmail" type="email" placeholder="you@example.com"/></div>
+        <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="siPassword" type="password" placeholder="••••••••"/></div>
+        <button class="btn-form" id="signinBtn" onclick="handleSignIn()">Sign In</button>
+        <div class="auth-divider">or</div>
+        <p style="text-align:center;font-size:0.75rem;color:var(--silver-dim);">Don't have an account? <button onclick="switchAuthTab('register')" style="background:none;border:none;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;font-size:0.75rem;">Create one →</button></p>
+      </div>
+
+      <!-- Register -->
+      <div class="auth-card" id="registerPanel" style="display:none;">
+        <h2>Create Account</h2>
+        <p>Join MaheshwariSales and get access to exclusive deals, order tracking and personalised recommendations.</p>
+        <div class="auth-msg" id="registerMsg"></div>
+        <div class="profile-grid">
+          <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="regFirst" type="text" placeholder="Raj"/></div>
+          <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="regLast" type="text" placeholder="Maheshwari"/></div>
+        </div>
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="regEmail" type="email" placeholder="you@example.com"/></div>
+        <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="regPassword" type="password" placeholder="Min. 8 characters"/></div>
+        <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" id="regConfirm" type="password" placeholder="Repeat password"/></div>
+        <button class="btn-form" id="registerBtn" onclick="handleRegister()">Create Account</button>
+        <div class="auth-divider">or</div>
+        <p style="text-align:center;font-size:0.75rem;color:var(--silver-dim);">Already have an account? <button onclick="switchAuthTab('signin')" style="background:none;border:none;color:var(--gold);cursor:pointer;font-family:'Jost',sans-serif;font-size:0.75rem;">Sign in →</button></p>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD (logged in) ── -->
+    <div class="dashboard" id="dashboardSection">
+      <div class="dash-welcome">
+        <div class="dash-user">
+          <div class="dash-avatar" id="dashAvatar">?</div>
+          <div class="dash-user-info">
+            <h3 id="dashName">Welcome</h3>
+            <p id="dashEmail">—</p>
+          </div>
+        </div>
+        <button class="btn-signout" onclick="handleSignOut()">Sign Out</button>
+      </div>
+
+      <!-- Dashboard tabs -->
+      <div class="dash-tabs">
+        <button class="dash-tab active" onclick="switchDashTab('overview')">Overview</button>
+        <button class="dash-tab" onclick="switchDashTab('orders')">Order History</button>
+        <button class="dash-tab" onclick="switchDashTab('profile')">Profile</button>
+      </div>
+
+      <!-- Overview panel -->
+      <div class="dash-panel active" id="panel-overview">
+        <div class="dash-stats">
+          <div class="dash-stat"><div class="dash-stat-num" id="statOrders">0</div><div class="dash-stat-label">Total Orders</div></div>
+          <div class="dash-stat"><div class="dash-stat-num" id="statSpend">₹0</div><div class="dash-stat-label">Total Spent</div></div>
+          <div class="dash-stat"><div class="dash-stat-num" id="statCart">0</div><div class="dash-stat-label">Items in Cart</div></div>
+        </div>
+
+        <!-- Recent orders preview -->
+        <div class="orders-section">
+          <h3>Recent Orders</h3>
+          <div id="overviewOrdersList">
+            <div class="no-orders"><div class="no-orders-icon">📦</div><p>No orders yet</p><a href="collection.html" class="btn-primary" style="display:inline-flex;gap:10px;align-items:center;"><span>Browse Collection</span></a></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order History panel -->
+      <div class="dash-panel" id="panel-orders">
+        <div class="orders-section">
+          <h3>Order History</h3>
+          <div id="fullOrdersList">
+            <div class="no-orders"><div class="no-orders-icon">📦</div><p>No orders placed yet.</p><a href="collection.html" class="btn-primary" style="display:inline-flex;gap:10px;align-items:center;"><span>Start Shopping</span></a></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile panel -->
+      <div class="dash-panel" id="panel-profile">
+        <div class="orders-section">
+          <h3>Profile Details</h3>
+          <div class="profile-grid" style="margin-bottom:24px;">
+            <div class="profile-field"><label>Email</label><input id="profEmail" type="email" readonly/></div>
+            <div class="profile-field"><label>Member Since</label><input id="profSince" type="text" readonly/></div>
+            <div class="profile-field"><label>First Name</label><input id="profFirst" type="text" placeholder="First name"/></div>
+            <div class="profile-field"><label>Last Name</label><input id="profLast" type="text" placeholder="Last name"/></div>
+            <div class="profile-field"><label>Phone</label><input id="profPhone" type="tel" placeholder="+91 00000 00000"/></div>
+            <div class="profile-field"><label>City</label><input id="profCity" type="text" placeholder="Mumbai"/></div>
+          </div>
+          <button class="btn-form" style="max-width:200px;" onclick="saveProfile()">Save Changes</button>
+          <div class="auth-msg" id="profileMsg" style="margin-top:16px;max-width:400px;"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── ORDER MODAL ── -->
+  <div class="modal-overlay" id="orderModal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-title" id="modalTitle">Order Details</div>
+      <div id="modalItems"></div>
+      <div class="modal-total"><span>Total</span><strong id="modalTotal">₹0</strong></div>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-grid reveal">
+      <div><div class="footer-brand-name">MaheshwariSales</div><p class="footer-tagline">Luxury hardware for spaces that demand the finest. Serving India since 1987.</p><div class="sidebar-socials"><a href="#">ig</a><a href="#">fb</a><a href="#">yt</a></div></div>
+      <div class="footer-col"><h4>Collections</h4><ul><li><a href="collection.html?category=Taps">Taps</a></li><li><a href="collection.html?category=Washbasins">Washbasins</a></li><li><a href="collection.html?category=Pipes">Pipes</a></li><li><a href="collection.html?category=Switches">Switches</a></li></ul></div>
+      <div class="footer-col"><h4>Pages</h4><ul><li><a href="index.html">Home</a></li><li><a href="collection.html">Collection</a></li><li><a href="gallery.html">Gallery</a></li><li><a href="my-account.html">My Account</a></li></ul></div>
+      <div class="footer-col"><h4>Support</h4><ul><li><a href="#">Contact</a></li><li><a href="#">Shipping</a></li><li><a href="#">Returns</a></li><li><a href="#">FAQs</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><p>© 2025 MaheshwariSales. All rights reserved.</p><p>Designed with precision in India 🇮🇳</p></div>
+  </footer>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const SB = createClient(
+      'https://pwlappfcyqechcoiqcjk.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB3bGFwcGZjeXFlY2hjb2lxY2prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NzA0NjUsImV4cCI6MjA4ODU0NjQ2NX0.364XmLPVCFGDVlrdNrW_JAOUQXmAKDYyp_mfKDmMUGI'
+    );
+
+    // ── Cart badge ───────────────────────────────────────────────
+    function updateBadge() {
+      const cart = JSON.parse(localStorage.getItem('ms_cart_v2')||'[]');
+      document.getElementById('cartBadge').textContent = cart.reduce((s,i)=>s+i.qty,0);
+    }
+    updateBadge();
+
+    // ── Auth tabs ────────────────────────────────────────────────
+    window.switchAuthTab = function(tab) {
+      document.getElementById('signinPanel').style.display   = tab==='signin'   ? 'block' : 'none';
+      document.getElementById('registerPanel').style.display = tab==='register' ? 'block' : 'none';
+      document.getElementById('tabSignIn').classList.toggle('active', tab==='signin');
+      document.getElementById('tabRegister').classList.toggle('active', tab==='register');
+    };
+
+    // ── Dashboard tabs ───────────────────────────────────────────
+    window.switchDashTab = function(tab) {
+      document.querySelectorAll('.dash-tab').forEach((b,i)=>b.classList.toggle('active', ['overview','orders','profile'][i]===tab));
+      document.querySelectorAll('.dash-panel').forEach(p=>p.classList.remove('active'));
+      document.getElementById('panel-'+tab).classList.add('active');
+    };
+
+    // ── Sign In ──────────────────────────────────────────────────
+    window.handleSignIn = async function() {
+      const email = document.getElementById('siEmail').value.trim();
+      const pass  = document.getElementById('siPassword').value;
+      const msg   = document.getElementById('signinMsg');
+      const btn   = document.getElementById('signinBtn');
+      msg.className='auth-msg'; msg.textContent='';
+      if (!email||!pass) { msg.className='auth-msg error'; msg.textContent='Please enter email and password.'; return; }
+      btn.disabled=true; btn.textContent='Signing in…';
+      const { error } = await SB.auth.signInWithPassword({ email, password:pass });
+      if (error) { msg.className='auth-msg error'; msg.textContent=error.message; btn.disabled=false; btn.textContent='Sign In'; }
+      else { await loadDashboard(); }
+    };
+
+    // ── Register ─────────────────────────────────────────────────
+    window.handleRegister = async function() {
+      const first = document.getElementById('regFirst').value.trim();
+      const last  = document.getElementById('regLast').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const pass  = document.getElementById('regPassword').value;
+      const conf  = document.getElementById('regConfirm').value;
+      const msg   = document.getElementById('registerMsg');
+      const btn   = document.getElementById('registerBtn');
+      msg.className='auth-msg'; msg.textContent='';
+      if (!first||!email||!pass) { msg.className='auth-msg error'; msg.textContent='Please fill in all required fields.'; return; }
+      if (pass.length<8) { msg.className='auth-msg error'; msg.textContent='Password must be at least 8 characters.'; return; }
+      if (pass!==conf) { msg.className='auth-msg error'; msg.textContent='Passwords do not match.'; return; }
+      btn.disabled=true; btn.textContent='Creating account…';
+      const { error } = await SB.auth.signUp({ email, password:pass, options:{ data:{ first_name:first, last_name:last } } });
+      if (error) { msg.className='auth-msg error'; msg.textContent=error.message; btn.disabled=false; btn.textContent='Create Account'; }
+      else { msg.className='auth-msg success'; msg.textContent='Account created! Please check your email to confirm, then sign in.'; btn.disabled=false; btn.textContent='Create Account'; }
+    };
+
+    // ── Sign Out ─────────────────────────────────────────────────
+    window.handleSignOut = async function() {
+      await SB.auth.signOut();
+      showGuest();
+    };
+
+    // ── Load dashboard ───────────────────────────────────────────
+    async function loadDashboard() {
+      const { data:{ user } } = await SB.auth.getUser();
+      if (!user) { showGuest(); return; }
+
+      document.getElementById('loadingState').style.display='none';
+      document.getElementById('guestSection').style.display='none';
+      document.getElementById('dashboardSection').classList.add('active');
+
+      // User info
+      const meta = user.user_metadata||{};
+      const name = [meta.first_name,meta.last_name].filter(Boolean).join(' ') || user.email.split('@')[0];
+      const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      document.getElementById('dashAvatar').textContent = initials;
+      document.getElementById('dashName').textContent   = name;
+      document.getElementById('dashEmail').textContent  = user.email;
+
+      // Profile panel
+      document.getElementById('profEmail').value = user.email;
+      document.getElementById('profSince').value = new Date(user.created_at).toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'});
+      document.getElementById('profFirst').value = meta.first_name||'';
+      document.getElementById('profLast').value  = meta.last_name||'';
+      document.getElementById('profPhone').value = meta.phone||'';
+      document.getElementById('profCity').value  = meta.city||'';
+
+      // Cart stat
+      const cart = JSON.parse(localStorage.getItem('ms_cart_v2')||'[]');
+      document.getElementById('statCart').textContent = cart.reduce((s,i)=>s+i.qty,0);
+
+      // Fetch orders from localStorage (simulated since no orders table yet)
+      const orders = getStoredOrders(user.id);
+      renderOrders(orders);
+    }
+
+    // ── Simulated orders (localStorage by user id) ───────────────
+    function getStoredOrders(uid) {
+      return JSON.parse(localStorage.getItem('ms_orders_'+uid)||'[]');
+    }
+
+    function renderOrders(orders) {
+      const count = orders.length;
+      const spend = orders.reduce((s,o)=>s+o.total,0);
+      document.getElementById('statOrders').textContent = count;
+      document.getElementById('statSpend').textContent  = '₹'+spend.toLocaleString('en-IN');
+
+      const noOrdersHTML = `<div class="no-orders"><div class="no-orders-icon">📦</div><p>No orders placed yet.</p><a href="collection.html" class="btn-primary" style="display:inline-flex;gap:10px;align-items:center;"><span>Start Shopping</span></a></div>`;
+
+      if (!count) {
+        document.getElementById('overviewOrdersList').innerHTML = noOrdersHTML;
+        document.getElementById('fullOrdersList').innerHTML     = noOrdersHTML;
+        return;
+      }
+
+      const tableHTML = (rows) => `
+        <table class="orders-table">
+          <thead><tr><th>Order #</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th></th></tr></thead>
+          <tbody>${rows.map(o=>`
+            <tr>
+              <td style="color:var(--gold);font-family:'Cormorant Garamond',serif;">${o.id}</td>
+              <td>${new Date(o.date).toLocaleDateString('en-IN')}</td>
+              <td>${o.items.length} item${o.items.length!==1?'s':''}</td>
+              <td>₹${o.total.toLocaleString('en-IN')}</td>
+              <td><span class="order-status status-${o.status.toLowerCase()}">${o.status}</span></td>
+              <td><button class="order-details-btn" onclick="window.openOrderModal('${o.id}')">Details</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+
+      document.getElementById('overviewOrdersList').innerHTML = tableHTML(orders.slice(0,3));
+      document.getElementById('fullOrdersList').innerHTML     = tableHTML(orders);
+    }
+
+    // ── Order modal ──────────────────────────────────────────────
+    window._ordersRef = {};
+    window.openOrderModal = function(oid) {
+      const o = window._ordersRef[oid];
+      if (!o) return;
+      document.getElementById('modalTitle').textContent = 'Order '+o.id+' — '+o.status;
+      document.getElementById('modalItems').innerHTML = o.items.map(i=>`
+        <div class="modal-item">
+          <img src="${i.image_url||''}" alt="${i.name}" onerror="this.style.display='none'"/>
+          <div class="modal-item-info"><div class="modal-item-name">${i.name}</div><div class="modal-item-sub">${i.category} · Qty: ${i.qty}</div></div>
+          <div class="modal-item-price">₹${(i.price*i.qty).toLocaleString('en-IN')}</div>
+        </div>`).join('');
+      document.getElementById('modalTotal').textContent = '₹'+o.total.toLocaleString('en-IN');
+      document.getElementById('orderModal').classList.add('open');
+    };
+    window.closeModal = function() { document.getElementById('orderModal').classList.remove('open'); };
+    document.getElementById('orderModal').addEventListener('click', e => { if(e.target===document.getElementById('orderModal')) closeModal(); });
+
+    // ── Save profile ─────────────────────────────────────────────
+    window.saveProfile = async function() {
+      const msg = document.getElementById('profileMsg');
+      msg.className='auth-msg'; msg.textContent='';
+      const { error } = await SB.auth.updateUser({ data:{
+        first_name: document.getElementById('profFirst').value.trim(),
+        last_name:  document.getElementById('profLast').value.trim(),
+        phone:      document.getElementById('profPhone').value.trim(),
+        city:       document.getElementById('profCity').value.trim()
+      }});
+      if (error) { msg.className='auth-msg error'; msg.textContent=error.message; }
+      else { msg.className='auth-msg success'; msg.textContent='Profile updated successfully!'; }
+    };
+
+    // ── Show guest ────────────────────────────────────────────────
+    function showGuest() {
+      document.getElementById('loadingState').style.display='none';
+      document.getElementById('guestSection').style.display='block';
+      document.getElementById('dashboardSection').classList.remove('active');
+    }
+
+    // ── On load ───────────────────────────────────────────────────
+    (async () => {
+      const { data:{ session } } = await SB.auth.getSession();
+      if (session) await loadDashboard();
+      else showGuest();
+    })();
+  </script>
+
+  <script>
+    // Cursor
+    const dot=document.getElementById('cursorDot'),ring=document.getElementById('cursorRing');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+    (function a(){dot.style.left=mx+'px';dot.style.top=my+'px';rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(a);})();
+    // Navbar
+    window.addEventListener('scroll',()=>document.getElementById('navbar').classList.toggle('scrolled',scrollY>60));
+    // Sidebar
+    const hb=document.getElementById('hamburgerBtn'),sb=document.getElementById('sidebar'),ov=document.getElementById('sidebarOverlay');
+    function openSB(){sb.classList.add('open');ov.classList.add('active');hb.classList.add('active');document.body.style.overflow='hidden';}
+    function closeSB(){sb.classList.remove('open');ov.classList.remove('active');hb.classList.remove('active');document.body.style.overflow='';}
+    hb.addEventListener('click',()=>sb.classList.contains('open')?closeSB():openSB());
+    ov.addEventListener('click',closeSB); document.getElementById('sidebarClose').addEventListener('click',closeSB);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSB();});
+    // Category dropdown
+    const cb=document.getElementById('categoryBtn'),cd=document.getElementById('categoryDropdown');
+    cb.addEventListener('click',()=>{const o=cd.classList.toggle('open');cb.classList.toggle('open',o);});
+    // Scroll reveal
+    const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('revealed');obs.unobserve(e.target);}});},{threshold:0.12});
+    document.querySelectorAll('.reveal,.reveal-left,.reveal-right').forEach(el=>obs.observe(el));
+  </script>
+</body>
+</html>

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard — MaheshwariSales</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet"/>
   <style>
     :root {
@@ -442,6 +443,10 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
             Store
           </a>
+          <button class="topbar-btn-ghost" id="importExcelBtn" style="border-color:rgba(201,168,76,0.3);color:var(--gold);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            Import Excel
+          </button>
           <button class="topbar-btn" id="addProductBtn">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Product
@@ -892,6 +897,336 @@
 
     // ── Init ───────────────────────────────────────────────────
     fetchProducts();
+
+    // ══════════════════════════════════════════════
+    //  EXCEL IMPORT LOGIC
+    // ══════════════════════════════════════════════
+    const VALID_CATEGORIES = ['Taps','Washbasins','Pipes','Switches'];
+    let excelRows = [];
+
+    // Open / close modal
+    document.getElementById('importExcelBtn').addEventListener('click', () => {
+      resetExcelModal();
+      document.getElementById('excelModal').classList.add('open');
+    });
+    function closeExcelModal() { document.getElementById('excelModal').classList.remove('open'); }
+    document.getElementById('excelModalClose').addEventListener('click', closeExcelModal);
+    document.getElementById('excelCancelBtn').addEventListener('click', closeExcelModal);
+    document.getElementById('excelModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('excelModal')) closeExcelModal();
+    });
+
+    function resetExcelModal() {
+      excelRows = [];
+      document.getElementById('excelStep1').style.display = 'block';
+      document.getElementById('excelStep2').style.display = 'none';
+      document.getElementById('excelImportBtn').style.display = 'none';
+      document.getElementById('excelParseError').style.display = 'none';
+      document.getElementById('excelFileInput').value = '';
+    }
+
+    document.getElementById('reuploadBtn').addEventListener('click', resetExcelModal);
+
+    // File input & drag-drop
+    const excelFileInput  = document.getElementById('excelFileInput');
+    const excelUploadZone = document.getElementById('excelUploadZone');
+
+    excelUploadZone.addEventListener('dragover', e => {
+      e.preventDefault(); excelUploadZone.style.borderColor = 'rgba(201,168,76,0.6)';
+    });
+    excelUploadZone.addEventListener('dragleave', () => {
+      excelUploadZone.style.borderColor = 'rgba(201,168,76,0.25)';
+    });
+    excelUploadZone.addEventListener('drop', e => {
+      e.preventDefault(); excelUploadZone.style.borderColor = 'rgba(201,168,76,0.25)';
+      if (e.dataTransfer.files[0]) parseExcelFile(e.dataTransfer.files[0]);
+    });
+    excelFileInput.addEventListener('change', e => {
+      if (e.target.files[0]) parseExcelFile(e.target.files[0]);
+    });
+
+    // ── Parse Excel file ───────────────────────────────────────
+    function parseExcelFile(file) {
+      const errEl = document.getElementById('excelParseError');
+      errEl.style.display = 'none';
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const wb   = XLSX.read(data, { type: 'array' });
+          const ws   = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+          if (!rows.length) throw new Error('Excel file is empty or has no data rows.');
+
+          // Normalise column names — lowercase + underscores
+          const normalised = rows.map(row => {
+            const n = {};
+            Object.keys(row).forEach(k => {
+              n[k.toLowerCase().trim().replace(/\s+/g, '_')] = row[k];
+            });
+            return n;
+          });
+
+          // Check required columns
+          const required = ['name', 'category', 'price', 'stock'];
+          const missing  = required.filter(c => !(c in normalised[0]));
+          if (missing.length) throw new Error('Missing required columns: ' + missing.join(', '));
+
+          buildPreview(normalised);
+
+        } catch (err) {
+          errEl.textContent = '⚠ ' + err.message;
+          errEl.style.display = 'block';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // ── Build preview table ────────────────────────────────────
+    function buildPreview(rows) {
+      excelRows = [];
+      const errors = [];
+      let newCount = 0, updateCount = 0, skipCount = 0;
+
+      const processed = rows.map((row, i) => {
+        const lineNum     = i + 2;
+        const name        = String(row.name        || '').trim();
+        const categoryRaw = String(row.category    || '').trim();
+        const category    = VALID_CATEGORIES.find(c => c.toLowerCase() === categoryRaw.toLowerCase()) || categoryRaw;
+        const price       = parseFloat(row.price)  || 0;
+        const stock       = parseInt(row.stock)    || 0;
+        const description = String(row.description || '').trim();
+        const image_url   = String(row.image_url || row.image || row.img || '').trim()
+                          || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format';
+
+        const rowErrors = [];
+        if (!name)                                   rowErrors.push('Name is empty');
+        if (!VALID_CATEGORIES.includes(category))    rowErrors.push(`Invalid category "${categoryRaw}"`);
+        if (!price || price <= 0)                    rowErrors.push('Price must be > 0');
+        if (stock < 0)                               rowErrors.push('Stock cannot be negative');
+
+        if (rowErrors.length) {
+          errors.push(`Row ${lineNum}: ${rowErrors.join('; ')}`);
+          skipCount++;
+          return { name, category, price, stock, description, image_url, status: 'error', errors: rowErrors };
+        }
+
+        const existing = allProducts.find(p => p.name.toLowerCase() === name.toLowerCase());
+        const status   = existing ? 'update' : 'new';
+        if (existing) updateCount++; else newCount++;
+
+        excelRows.push({ name, category, price, stock, description, image_url, status, existingId: existing?.id });
+        return { name, category, price, stock, description, image_url, status };
+      });
+
+      // Update counters
+      document.getElementById('excelPreviewCount').textContent  = rows.length;
+      document.getElementById('excelNewCount').textContent      = newCount    + ' New';
+      document.getElementById('excelUpdateCount').textContent   = updateCount + ' Update';
+      document.getElementById('excelSkipCount').textContent     = skipCount   + ' Skip';
+
+      // Render rows
+      document.getElementById('excelPreviewBody').innerHTML = processed.map(r => `
+        <tr>
+          <td>
+            <span class="excel-status-${r.status}">${r.status}</span>
+            ${r.errors ? `<div style="font-size:0.6rem;color:var(--error);margin-top:3px;">${r.errors.join('<br>')}</div>` : ''}
+          </td>
+          <td style="color:var(--white);font-size:0.78rem;">${r.name}</td>
+          <td><span class="td-cat">${r.category}</span></td>
+          <td style="color:var(--gold);">₹${Number(r.price).toLocaleString('en-IN')}</td>
+          <td class="${r.stock < 10 ? 'excel-low-stock' : 'excel-ok-stock'}">${r.stock}${r.stock < 10 ? ' ⚠' : ''}</td>
+          <td><span class="excel-url-short" title="${r.image_url}">${r.image_url.replace(/^https?:\/\/[^/]+/, '').slice(0, 40) + '…'}</span></td>
+        </tr>`).join('');
+
+      // Validation errors summary
+      const errBox = document.getElementById('excelValidationErrors');
+      if (errors.length) {
+        errBox.innerHTML = '<strong>⚠ Rows with errors will be skipped:</strong><br>' + errors.join('<br>');
+        errBox.style.display = 'block';
+      } else {
+        errBox.style.display = 'none';
+      }
+
+      // Switch to step 2
+      document.getElementById('excelStep1').style.display = 'none';
+      document.getElementById('excelStep2').style.display = 'block';
+
+      const importBtn = document.getElementById('excelImportBtn');
+      importBtn.style.display  = 'inline-flex';
+      importBtn.disabled       = excelRows.length === 0;
+      importBtn.style.opacity  = excelRows.length === 0 ? '0.4' : '1';
+    }
+
+    // ── Import to Supabase ─────────────────────────────────────
+    document.getElementById('excelImportBtn').addEventListener('click', async () => {
+      if (!excelRows.length) return;
+
+      const btn = document.getElementById('excelImportBtn');
+      btn.disabled = true;
+      btn.innerHTML = 'Importing…';
+
+      // New products to insert
+      const maxId    = Math.max(...allProducts.map(p => p.id), 50);
+      const toInsert = excelRows
+        .filter(r => r.status === 'new')
+        .map((r, i) => ({
+          id: maxId + i + 1,
+          name: r.name, category: r.category,
+          price: r.price, stock: r.stock,
+          description: r.description, image_url: r.image_url
+        }));
+
+      const toUpdate = excelRows.filter(r => r.status === 'update');
+
+      let successCount = 0, failCount = 0;
+
+      // Batch insert new
+      if (toInsert.length) {
+        const { error } = await supabase.from('products').insert(toInsert);
+        if (error) { failCount += toInsert.length; console.error('Insert error:', error); }
+        else        successCount += toInsert.length;
+      }
+
+      // Update existing one by one
+      for (const row of toUpdate) {
+        const { error } = await supabase.from('products').update({
+          category: row.category, price: row.price,
+          stock: row.stock, description: row.description,
+          image_url: row.image_url
+        }).eq('id', row.existingId);
+        if (error) { failCount++; console.error('Update error:', error); }
+        else        successCount++;
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = 'Import to Website';
+
+      if (failCount === 0) {
+        closeExcelModal();
+        await fetchProducts();
+        showToast(`✓ ${successCount} product${successCount !== 1 ? 's' : ''} imported!`, 'success');
+      } else {
+        showToast(`${successCount} imported, ${failCount} failed — check console.`, 'error');
+      }
+    });
+
+    // ── Download Excel template ────────────────────────────────
+    document.getElementById('downloadTemplateBtn').addEventListener('click', () => {
+      const template = [
+        { name: 'Example Gold Basin Tap', category: 'Taps',       price: 4999,  stock: 25, description: 'Premium brushed nickel tap',   image_url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600' },
+        { name: 'Example Ceramic Basin',  category: 'Washbasins', price: 12999, stock: 8,  description: 'Ceramic undermount washbasin', image_url: 'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=600' },
+        { name: 'Example CPVC Pipe Set',  category: 'Pipes',      price: 2499,  stock: 50, description: 'CPVC pipe fitting set 25mm',   image_url: '' },
+        { name: 'Example Modular Switch', category: 'Switches',   price: 899,   stock: 3,  description: 'Modular 6A switch socket',     image_url: '' },
+      ];
+      const ws = XLSX.utils.json_to_sheet(template);
+      ws['!cols'] = [{ wch: 30 }, { wch: 14 }, { wch: 10 }, { wch: 8 }, { wch: 40 }, { wch: 60 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Products');
+      XLSX.writeFile(wb, 'MaheshwariSales_Product_Template.xlsx');
+    });
+    // ══ END EXCEL IMPORT LOGIC ══
   </script>
+
+  <!-- ═══════════════════════════════════════════════
+       EXCEL IMPORT MODAL
+  ═══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="excelModal">
+    <div class="modal" style="max-width:800px;">
+      <div class="modal-header">
+        <div class="modal-title">Import Products from Excel</div>
+        <button class="modal-close" id="excelModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Step 1: Upload -->
+        <div id="excelStep1">
+          <p style="font-size:0.78rem;color:var(--silver-dim);line-height:1.7;margin-bottom:20px;">
+            Upload an Excel file (.xlsx or .xls) with the following columns:<br/>
+            <span style="color:var(--gold);">name</span>, 
+            <span style="color:var(--gold);">category</span>, 
+            <span style="color:var(--gold);">price</span>, 
+            <span style="color:var(--gold);">stock</span>, 
+            <span style="color:var(--gold);">description</span>, 
+            <span style="color:var(--gold);">image_url</span>
+          </p>
+
+          <!-- Download template button -->
+          <button id="downloadTemplateBtn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 16px;background:none;border:1px solid rgba(201,168,76,0.25);color:var(--gold-dim);font-family:'Jost',sans-serif;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;cursor:none;margin-bottom:20px;transition:all 0.3s;" onmouseenter="this.style.color='var(--gold)';this.style.borderColor='rgba(201,168,76,0.5)'" onmouseleave="this.style.color='var(--gold-dim)';this.style.borderColor='rgba(201,168,76,0.25)'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Excel Template
+          </button>
+
+          <div class="upload-zone" id="excelUploadZone" style="border-color:rgba(201,168,76,0.25);">
+            <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv"/>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dim)" stroke-width="1.5" style="margin:0 auto 10px;display:block;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            <div class="upload-text"><strong>Click to upload</strong> or drag & drop your Excel file<br/>.xlsx, .xls or .csv</div>
+          </div>
+          <div id="excelParseError" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.25);color:var(--error);font-size:0.75rem;"></div>
+        </div>
+
+        <!-- Step 2: Preview -->
+        <div id="excelStep2" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div>
+              <span id="excelPreviewCount" style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--gold);font-weight:300;"></span>
+              <span style="font-size:0.72rem;color:var(--silver-dim);margin-left:8px;">rows detected</span>
+            </div>
+            <div style="display:flex;gap:8px;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;">
+              <span id="excelNewCount" style="padding:3px 10px;background:rgba(76,175,130,0.1);border:1px solid rgba(76,175,130,0.25);color:var(--success);border-radius:2px;"></span>
+              <span id="excelUpdateCount" style="padding:3px 10px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);border-radius:2px;"></span>
+              <span id="excelSkipCount" style="padding:3px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:var(--silver-dim);border-radius:2px;"></span>
+            </div>
+          </div>
+
+          <div style="max-height:340px;overflow-y:auto;border:1px solid var(--border);">
+            <table style="width:100%;border-collapse:collapse;font-size:0.75rem;">
+              <thead style="background:var(--bg4);position:sticky;top:0;">
+                <tr>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);font-weight:400;">Status</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);font-weight:400;">Name</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);font-weight:400;">Category</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);font-weight:400;">Price</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);font-weight:400;">Stock</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);font-weight:400;">Image URL</th>
+                </tr>
+              </thead>
+              <tbody id="excelPreviewBody"></tbody>
+            </table>
+          </div>
+
+          <div id="excelValidationErrors" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(224,92,92,0.06);border:1px solid rgba(224,92,92,0.2);font-size:0.72rem;color:var(--error);line-height:1.8;"></div>
+
+          <button id="reuploadBtn" style="margin-top:14px;background:none;border:none;color:var(--gold-dim);font-family:'Jost',sans-serif;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;cursor:none;text-decoration:underline;">← Upload different file</button>
+        </div>
+
+      </div>
+      <div class="modal-footer" id="excelModalFooter">
+        <button class="btn-modal-cancel" id="excelCancelBtn">Cancel</button>
+        <button class="btn-modal-submit" id="excelImportBtn" style="display:none;" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Import to Website
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* Excel import styles */
+    #excelPreviewBody tr { border-bottom: 1px solid var(--border); }
+    #excelPreviewBody tr:hover { background: rgba(255,255,255,0.02); }
+    #excelPreviewBody td { padding: 9px 12px; color: var(--silver); vertical-align: middle; }
+    .excel-status-new    { display:inline-block;padding:2px 8px;background:rgba(76,175,130,0.1);border:1px solid rgba(76,175,130,0.25);color:var(--success);font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase; }
+    .excel-status-update { display:inline-block;padding:2px 8px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase; }
+    .excel-status-skip   { display:inline-block;padding:2px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:var(--silver-dim);font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase; }
+    .excel-status-error  { display:inline-block;padding:2px 8px;background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.25);color:var(--error);font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase; }
+    .excel-low-stock { color: var(--error); font-weight:500; }
+    .excel-ok-stock  { color: var(--success); }
+    .excel-img-preview { width:32px;height:32px;object-fit:cover;background:var(--bg4);border:1px solid var(--border);vertical-align:middle; }
+    .excel-url-short { font-size:0.65rem;color:var(--silver-dim);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block; }
+  </style>
+
 </body>
 </html>
